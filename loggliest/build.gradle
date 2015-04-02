@@ -1,0 +1,96 @@
+apply plugin: 'com.android.library'
+
+ext {
+    PUBLISH_GROUP_ID = 'com.inrista.loggliest'
+    PUBLISH_ARTIFACT_ID = 'loggliest'
+    PUBLISH_VERSION = '0.1'
+}
+
+android {
+    compileSdkVersion 22
+    buildToolsVersion '22'
+    defaultConfig {
+        minSdkVersion 9
+        targetSdkVersion 22
+        versionCode 1
+        versionName PUBLISH_VERSION
+    }
+}
+
+dependencies {
+    compile 'com.squareup.retrofit:retrofit:1.9.0'
+}
+
+apply plugin: 'maven'
+
+configurations {
+    optional
+    compile.extendsFrom optional
+}
+
+def localReleaseDest = "${buildDir}/release/${project.PUBLISH_VERSION}"
+
+android.libraryVariants.all { variant ->
+    def name = variant.buildType.name
+    if (!name.equals("debug")) {
+        def task = project.tasks.create "jar${name.capitalize()}", Jar
+        task.dependsOn variant.javaCompile
+        task.from variant.javaCompile.destinationDir
+        artifacts.add('archives', task);
+    }
+}
+
+task androidJavadocs(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+
+task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
+    classifier = 'javadoc'
+    from androidJavadocs.destinationDir
+}
+
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.srcDirs
+}
+
+uploadArchives {
+    repositories.mavenDeployer {
+        pom.groupId = project.PUBLISH_GROUP_ID
+        pom.artifactId = project.PUBLISH_ARTIFACT_ID
+        pom.version = project.PUBLISH_VERSION
+
+        pom.withXml {
+            asNode().dependencies.dependency.findAll { xmlDep ->
+                // mark optional dependencies
+                if (project.configurations.optional.allDependencies.findAll { dep ->
+                    xmlDep.groupId.text() == dep.group && xmlDep.artifactId.text() == dep.name
+                }) {
+                    def xmlOptional = xmlDep.optional[0];
+                    if (!xmlOptional) {
+                        xmlOptional = xmlDep.appendNode('optional')
+                    }
+                    xmlOptional.value = 'true';
+                }
+            }
+        }
+
+        repository(url: "file://${localReleaseDest}")
+    }
+}
+
+task zipRelease(type: Zip) {
+    from localReleaseDest
+    destinationDir buildDir
+    archiveName "release-${project.PUBLISH_VERSION}.zip"
+}
+
+task createRelease << {}
+createRelease.dependsOn(uploadArchives)
+createRelease.dependsOn(zipRelease)
+
+artifacts {
+    archives androidSourcesJar
+    archives androidJavadocsJar
+}
