@@ -1,5 +1,4 @@
 # Loggliest
----
 Android [Loggly](https://www.loggly.com/) client that uses the HTTP/S bulk api.
 
 ## Download
@@ -8,13 +7,13 @@ TODO
 ## Usage
 First, initialize the global singleton instance using the `Builder` provided by `with(android.content.Context, String)`. You must provide your Loggly token. A minimal setup looks like this:
 
-```
+```java
 final String TOKEN = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 Loggly.with(this, TOKEN).init();
 ```
 
 Log a message:
-```
+```java
 Loggly.i("stringfield", "test"); 
 Loggly.i("numberfield", 123);
 ```
@@ -29,7 +28,7 @@ The log messages are saved in the internal app storage and uploaded to Loggly in
 
 A typical configuration that sets upload intervals to 30mins, max number of messages between uploads to 1000 messages, limits the internal app storage log buffer to 500k and appends the default info fields along with a custom language field looks like this:
 
-```
+```java
 Loggly.with(this, TOKEN)
     .appendDefaultInfo(true)
     .uploadIntervalLogCount(1000)
