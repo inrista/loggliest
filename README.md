@@ -1,8 +1,11 @@
-# Loggliest
+# Loggliest [ ![Download](https://api.bintray.com/packages/inrista/maven/loggliest/images/download.svg) ](https://bintray.com/inrista/maven/loggliest/_latestVersion)
 Android [Loggly](https://www.loggly.com/) client that uses the HTTP/S bulk api.
 
-## Download
+## Setup
+
 TODO
+
+Loggliest depends on Retrofit 1.9.0 and requires API level 9 (Android 2.3)
 
 ## Usage
 First, initialize the global singleton instance using the `Builder` provided by `with(android.content.Context, String)`. You must provide your Loggly token. A minimal setup looks like this:
