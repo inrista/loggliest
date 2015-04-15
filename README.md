@@ -2,10 +2,14 @@
 Android [Loggly](https://www.loggly.com/) client that uses the HTTP/S bulk api.
 
 ## Setup
+Add this to your Gradle configuration:
+```gradle
+dependencies {
+    compile 'com.inrista.loggliest:loggliest:0.1'
+}
+```
 
-TODO
-
-Loggliest depends on Retrofit 1.9.0 and requires API level 9 (Android 2.3)
+Loggliest is available on JCenter which is the default repository, so no further configuration should be necessary. Loggliest depends on Retrofit 1.9.0 and requires API level 9 (Android 2.3)
 
 ## Usage
 First, initialize the global singleton instance using the `Builder` provided by `with(android.content.Context, String)`. You must provide your Loggly token. A minimal setup looks like this:
