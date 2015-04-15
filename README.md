@@ -1,5 +1,5 @@
 # Loggliest [ ![Download](https://api.bintray.com/packages/inrista/maven/loggliest/images/download.svg) ](https://bintray.com/inrista/maven/loggliest/_latestVersion)
-Android [Loggly](https://www.loggly.com/) client that uses the HTTP/S bulk api.
+Android [Loggly](https://www.loggly.com/) client. Loggliest provides asynchronous logging that queues log messages locally in the internal app storage and uploads logs to Loggly using the HTTP/S bulk api. 
 
 ## Setup
 Add this to your Gradle configuration:
@@ -9,7 +9,7 @@ dependencies {
 }
 ```
 
-Loggliest is available on JCenter which is the default repository, so no further configuration should be necessary. Loggliest depends on Retrofit 1.9.0 and requires API level 9 (Android 2.3)
+Loggliest is available on JCenter which is the default repository, so no further configuration should be necessary. Loggliest depends on Retrofit 1.9.0 and requires API level 9 (Android 2.3). It requires the internet permission.
 
 ## Usage
 First, initialize the global singleton instance using the `Builder` provided by `with(android.content.Context, String)`. You must provide your Loggly token. A minimal setup looks like this:
@@ -47,4 +47,17 @@ Loggly.with(this, TOKEN)
 
 **NOTE:** Short upload intervals will have a negative effect on the battery life. 
  
- 
+## License
+```
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
