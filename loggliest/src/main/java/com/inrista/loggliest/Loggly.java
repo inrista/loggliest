@@ -413,17 +413,16 @@ public class Loggly {
     }
     
     /**
-     * Log a verbose message. <b>NOTE:</b> Will be dropped in release builds.
+     * Log a verbose message.
      * @param key Loggly json field
      * @param msg The log message, either a JSONObject, String, Boolean, Integer, Long or Double
      */
     public static void v(String key, Object msg) {
-        if(BuildConfig.DEBUG)
-            log(key, msg, "verbose", System.currentTimeMillis());
+        log(key, msg, "verbose", System.currentTimeMillis());
     }        
 
     /**
-     * Log a verbose message and an exception. <b>NOTE:</b> Will be dropped in release builds.
+     * Log a verbose message and an exception.
      * @param key Loggly json field
      * @param msg The log message
      * @param tr The exception to log
@@ -433,17 +432,16 @@ public class Loggly {
     }
 
     /**
-     * Log a debug message. <b>NOTE:</b> Will be dropped in release builds.
+     * Log a debug message.
      * @param key Loggly json field
      * @param msg The log message, either a JSONObject, String, Boolean, Integer, Long or Double
      */    
     public static void d(String key, Object msg) {
-        if(BuildConfig.DEBUG)
-            log(key, msg, "debug", System.currentTimeMillis());
+        log(key, msg, "debug", System.currentTimeMillis());
     }        
 
     /**
-     * Log a debug message and an exception. <b>NOTE:</b> Will be dropped in release builds.
+     * Log a debug message and an exception.
      * @param key Loggly json field
      * @param msg The log message
      * @param tr The exception to log
