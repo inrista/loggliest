@@ -5,7 +5,7 @@ Android [Loggly](https://www.loggly.com/) client. Loggliest provides asynchronou
 Add this to your Gradle configuration:
 ```gradle
 dependencies {
-    compile 'com.inrista.loggliest:loggliest:0.1'
+    compile 'com.inrista.loggliest:loggliest:0.2'
 }
 ```
 
