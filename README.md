@@ -12,12 +12,14 @@ dependencies {
 Loggliest is available on JCenter which is the default repository, so no further configuration should be necessary. Loggliest depends on Retrofit 1.9.0 and requires API level 9 (Android 2.3). It requires the internet permission.
 
 ## Usage
-First, initialize the global singleton instance using the `Builder` provided by `with(android.content.Context, String)`. You must provide your Loggly token. A minimal setup looks like this:
+First, before you log any messages, initialize the global singleton instance using the `Builder` provided by `with(android.content.Context, String)`. You must provide your Loggly token. A minimal setup looks like this:
 
 ```java
 final String TOKEN = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 Loggly.with(this, TOKEN).init();
 ```
+
+You typically init Loggliest in your MainActivity's `onCreate()` or in an Application subclass. Either way, Loggliest keeps a global application context and lives as long the app process lives so that you can log for instance activity state changes.
 
 Log a message:
 ```java
@@ -30,7 +32,7 @@ The log messages are saved in the internal app storage and uploaded to Loggly in
 
 1. The time since the last upload exceeds the `uploadIntervalSecs(int seconds)` setting
 2. The number of log messages since the last upload exceeds the `uploadIntervalLogCount(int count)` setting
-3. A new `Loggly` instance is created and there are (old) messages that have not previously been uploaded
+3. A new `Loggly` instance is created and there are (old) messages that have not previously been uploaded. This will happen for instance when the app is killed and the user restarts it some time later
 4. `forceUpload()` is called
 
 A typical configuration that sets upload intervals to 30mins, max number of messages between uploads to 1000 messages, limits the internal app storage log buffer to 500k and appends the default info fields along with a custom language field looks like this:
@@ -45,7 +47,9 @@ Loggly.with(this, TOKEN)
     .init();
 ```
 
-**NOTE:** Short upload intervals will have a negative effect on the battery life. 
+By default, each message gets the app's package name as its Loggly tag, but this can be changed by setting the `tag(String logglyTag)` on the `Builder`.
+
+**NOTE:** Short upload intervals will have a negative effect on the battery life. You want to carefully configure the upload settings and limit the amount of data you log in production settings so as to limit the impact on battery life and network data usage your logging causes.
  
 ## License
 ```
