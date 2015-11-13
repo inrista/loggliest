@@ -20,6 +20,8 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Process;
 import android.os.SystemClock;
 import android.util.Log;
@@ -111,6 +113,7 @@ public class Loggly {
     private static final int MAX_SIZE_ON_DISK_MIN = 1000;
     private static final int UPLOAD_INTERVAL_SECS_MIN = 5;
     private static final int UPLOAD_INTERVAL_SECS_DEFAULT = 900;
+    private static final boolean UPLOAD_ON_WIFI_ONLY_DEFAULT = false;
     private static final int UPLOAD_INTERVAL_LOG_COUNT_MIN = 1;
     private static final int UPLOAD_INTERVAL_LOG_COUNT_DEFAULT = 500;
     private static final int IDLE_SECS_MIN = 0;
@@ -126,6 +129,7 @@ public class Loggly {
     private static String mToken;
     private static String mLogglyTag;
     private static int mUploadIntervalSecs;
+    private static boolean mUploadOnWifiOnly;
     private static int mUploadIntervalLogCount;
     private static int mIdleSecs;
     private static boolean mAppendDefaultInfo;
@@ -153,6 +157,7 @@ public class Loggly {
         private String logglyTag;
         private String logglyUrl;
         private int uploadIntervalSecs = UPLOAD_INTERVAL_SECS_DEFAULT;
+        private boolean uploadOnWifiOnly = UPLOAD_ON_WIFI_ONLY_DEFAULT;
         private int uploadIntervalLogCount = UPLOAD_INTERVAL_LOG_COUNT_DEFAULT;
         private int idleSecs = IDLE_SECS_DEFAULT;
         private boolean appendDefaultInfo = APPEND_DEFAULT_INFO_DEFAULT;
@@ -193,6 +198,15 @@ public class Loggly {
          */
         public Builder uploadIntervalSecs(int seconds) {
             this.uploadIntervalSecs = seconds;
+            return this;
+        }
+
+        /**
+         * Set if Loggly uploads should only occur when connected to wifi.
+         * @param uploadOnWifiOnly If wifi should be required.
+         */
+        public Builder uploadOnWifiOnly(boolean uploadOnWifiOnly) {
+            this.uploadOnWifiOnly = uploadOnWifiOnly;
             return this;
         }
 
@@ -284,7 +298,7 @@ public class Loggly {
                 synchronized (Loggly.class) {
                     if (mInstance == null) {
                         mInstance = new Loggly(context, token, logglyTag, logglyUrl, 
-                                uploadIntervalSecs, uploadIntervalLogCount, idleSecs, 
+                                uploadIntervalSecs, uploadOnWifiOnly, uploadIntervalLogCount, idleSecs,
                                 appendDefaultInfo, stickyInfo, maxSizeOnDisk);
                     }
                 }
@@ -313,13 +327,14 @@ public class Loggly {
     }
     
     private Loggly(Context context, String token, String logglyTag, String logglyUrl, 
-            int uploadIntervalSecs, int uploadIntervalLogCount, int idleSecs, 
+            int uploadIntervalSecs, boolean uploadOnWifiOnly, int uploadIntervalLogCount, int idleSecs,
             boolean appendDefaultInfo, HashMap<String, String> stickyInfo, int maxSizeOnDisk) {
         
         mContext = context;
         mToken = token;
         mLogglyTag = logglyTag;
         mUploadIntervalSecs = uploadIntervalSecs;
+        mUploadOnWifiOnly = uploadOnWifiOnly;
         mUploadIntervalLogCount = uploadIntervalLogCount;
         mIdleSecs = idleSecs;
         mAppendDefaultInfo = appendDefaultInfo;
@@ -373,8 +388,7 @@ public class Loggly {
                             logBatch.clear();
                         }
                         
-                        if((now - mLastUpload) >= mUploadIntervalSecs 
-                                || mLogCounter >= mUploadIntervalLogCount) {
+                        if(shouldUpload(now)) {
                             postLogs();
                         }
                         
@@ -393,6 +407,23 @@ public class Loggly {
         });
          
         mThread.start();
+    }
+
+    private static boolean shouldUpload(long now) {
+        if (mUploadOnWifiOnly) {
+            if (mContext == null) {
+                return false;
+            }
+
+            ConnectivityManager manager = (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            if (networkInfo.isConnected()) {
+                return false;
+            }
+        }
+
+        return (now - mLastUpload) >= mUploadIntervalSecs ||
+                mLogCounter >= mUploadIntervalLogCount;
     }
         
     private static void log(JSONObject jsonObject) {
