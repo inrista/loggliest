@@ -402,13 +402,19 @@ public class Loggly {
         mLogQueue.offer(jsonObject);
     }
 
+    private static void log(JSONObject jsonObject, String level, long time) {
+        try {
+            jsonObject.put("timestamp", time);
+            jsonObject.put("level", level);
+            log(jsonObject);
+        } catch (JSONException e) {}
+    }
+
     private static void log(String key, Object msg, String level, long time) {
         JSONObject json = new JSONObject();
         try {
-            json.put("timestamp", time);
-            json.put("level", level);
             json.put(key, msg);
-            log(json);
+            log(json, level, time);
         } catch (JSONException e) {}
     }
     
