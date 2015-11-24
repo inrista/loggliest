@@ -118,6 +118,11 @@ public class Loggly {
     private static final boolean APPEND_DEFAULT_INFO_DEFAULT = true;
     private static final String UPDATE_STICKY_INFO_MSG = "update-sticky-info";
     private static final String THREAD_NAME = "loggliest";
+    private static final String LEVEL_ERROR = "error";
+    private static final String LEVEL_WARNING = "warning";
+    private static final String LEVEL_INFO = "info";
+    private static final String LEVEL_DEBUG = "debug";
+    private static final String LEVEL_VERBOSE = "verbose";
 
     private static volatile Loggly mInstance;
     private static volatile Builder mBuilder;
@@ -417,6 +422,14 @@ public class Loggly {
             log(json, level, time);
         } catch (JSONException e) {}
     }
+
+    /**
+     * Log a verbose message as a JSON Object
+     * @param jsonObject JSON object with multiple fields to log
+     */
+    public static void v(JSONObject jsonObject) {
+        log(jsonObject, LEVEL_VERBOSE, System.currentTimeMillis());
+    }
     
     /**
      * Log a verbose message.
@@ -424,7 +437,7 @@ public class Loggly {
      * @param msg The log message, either a JSONObject, String, Boolean, Integer, Long or Double
      */
     public static void v(String key, Object msg) {
-        log(key, msg, "verbose", System.currentTimeMillis());
+        log(key, msg, LEVEL_VERBOSE, System.currentTimeMillis());
     }        
 
     /**
@@ -438,12 +451,20 @@ public class Loggly {
     }
 
     /**
+     * Log a debug message as a JSON Object
+     * @param jsonObject JSON object with multiple fields to log
+     */
+    public static void d(JSONObject jsonObject) {
+        log(jsonObject, LEVEL_DEBUG, System.currentTimeMillis());
+    }
+
+    /**
      * Log a debug message.
      * @param key Loggly json field
      * @param msg The log message, either a JSONObject, String, Boolean, Integer, Long or Double
      */    
     public static void d(String key, Object msg) {
-        log(key, msg, "debug", System.currentTimeMillis());
+        log(key, msg, LEVEL_DEBUG, System.currentTimeMillis());
     }        
 
     /**
@@ -455,6 +476,14 @@ public class Loggly {
     public static void d(String key, String msg, Throwable tr) {
         d(key, msg + '\n' + Log.getStackTraceString(tr));
     }
+
+    /**
+     * Log an info message as a JSON Object
+     * @param jsonObject JSON object with multiple fields to log
+     */
+    public static void i(JSONObject jsonObject) {
+        log(jsonObject, LEVEL_INFO, System.currentTimeMillis());
+    }
     
     /**
      * Log an info message.
@@ -462,7 +491,7 @@ public class Loggly {
      * @param msg The log message, either a JSONObject, String, Boolean, Integer, Long or Double
      */    
     public static void i(String key, Object msg) {
-        log(key, msg, "info", System.currentTimeMillis());
+        log(key, msg, LEVEL_INFO, System.currentTimeMillis());
     }        
     
     /**
@@ -476,12 +505,20 @@ public class Loggly {
     }
 
     /**
+     * Log a warning message as a JSON Object
+     * @param jsonObject JSON object with multiple fields to log
+     */
+    public static void w(JSONObject jsonObject) {
+        log(jsonObject, LEVEL_WARNING, System.currentTimeMillis());
+    }
+
+    /**
      * Log a warning message.
      * @param key Loggly json field
      * @param msg The log message, either a JSONObject, String, Boolean, Integer, Long or Double
      */        
     public static void w(String key, Object msg) {
-        log(key, msg, "warning", System.currentTimeMillis());
+        log(key, msg, LEVEL_WARNING, System.currentTimeMillis());
     }        
     
     /**
@@ -493,6 +530,14 @@ public class Loggly {
     public static void w(String key, String msg, Throwable tr) {
         w(key, msg + '\n' + Log.getStackTraceString(tr));
     }
+
+    /**
+     * Log an error message as a JSON Object
+     * @param jsonObject JSON object with multiple fields to log
+     */
+    public static void e(JSONObject jsonObject) {
+        log(jsonObject, LEVEL_ERROR, System.currentTimeMillis());
+    }
     
     /**
      * Log an error message.
@@ -500,7 +545,7 @@ public class Loggly {
      * @param msg The log message, either a JSONObject, String, Boolean, Integer, Long or Double
      */        
     public static void e(String key, Object msg) {
-        log(key, msg, "error", System.currentTimeMillis());
+        log(key, msg, LEVEL_ERROR, System.currentTimeMillis());
     }
 
     /**
