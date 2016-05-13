@@ -582,21 +582,24 @@ public class Loggly {
         
         try {
             
-            // Size of logs on disk
-            File dir = mContext.getDir(LOG_FOLDER, Context.MODE_PRIVATE);
-            long totalSize = 0;
-            File[] logFiles = dir.listFiles();
-            for (File logFile : logFiles)
-                totalSize += logFile.length();
+            File oldest = oldestLogFile();
+            if (oldest != null) {
+                // Size of logs on disk
+                File dir = mContext.getDir(LOG_FOLDER, Context.MODE_PRIVATE);
+                long totalSize = 0;
+                File[] logFiles = dir.listFiles();
+                for (File logFile : logFiles)
+                    totalSize += logFile.length();
 
-            // Check if size of logs on disk exceeds the limit, drop
-            // oldest messages in this case
-            if(totalSize > mMaxSizeOnDisk) {
-                int numFiles = logFiles.length;
-                if(numFiles <= 1)
-                    return;
-                
-                oldestLogFile().delete();
+                // Check if size of logs on disk exceeds the limit, drop
+                // oldest messages in this case
+                if(totalSize > mMaxSizeOnDisk) {
+                    int numFiles = logFiles.length;
+                    if(numFiles <= 1)
+                        return;
+
+                    oldest.delete();
+                }
             }
             
             // Create a new log file if necessary
@@ -650,7 +653,12 @@ public class Loggly {
         mLogCounter = 0;
 
         File dir = mContext.getDir(LOG_FOLDER, Context.MODE_PRIVATE);
-        for (File logFile : dir.listFiles()) {
+        File[] files = dir.listFiles();
+        if (files == null) {
+            return;
+        }
+
+        for (File logFile : files) {
             StringBuilder builder = new StringBuilder();
             
             try {
