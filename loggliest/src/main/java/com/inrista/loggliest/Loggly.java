@@ -34,6 +34,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -357,6 +358,10 @@ public class Loggly {
                 List<JSONObject> logBatch = new ArrayList<JSONObject>();
                 while(true) {
                     try {
+                        if (mThread.isInterrupted()) {
+                            throw new InterruptedException();
+                        }
+
                         JSONObject msg = mLogQueue.poll(10, TimeUnit.SECONDS);
                         if(msg != null) {
                             logBatch.add(msg);
