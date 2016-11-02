@@ -142,6 +142,7 @@ public class Loggly {
     private static int mAppVersionCode = 0;
     private static HashMap<String, String> mStickyInfo = null;
     private static int mMaxSizeOnDisk = 0;
+    private static boolean mCheckSizeOnDisk = true;
     
     /**
      * Configures the {@link Loggly} instance.
@@ -540,6 +541,14 @@ public class Loggly {
             log(json);
         } catch (JSONException e) {}
     }
+
+    public static void disableFileSizeLimit() {
+        mCheckSizeOnDisk = false;
+    }
+
+    public static void enableFileSizeLimit() {
+        mCheckSizeOnDisk = true;
+    }
     
     private static File recentLogFile() {
         File dir = mContext.getDir(LOG_FOLDER, Context.MODE_PRIVATE);
@@ -585,24 +594,25 @@ public class Loggly {
             return;
         
         try {
-            
-            File oldest = oldestLogFile();
-            if (oldest != null) {
-                // Size of logs on disk
-                File dir = mContext.getDir(LOG_FOLDER, Context.MODE_PRIVATE);
-                long totalSize = 0;
-                File[] logFiles = dir.listFiles();
-                for (File logFile : logFiles)
-                    totalSize += logFile.length();
+            if (mCheckSizeOnDisk) {
+                File oldest = oldestLogFile();
+                if (oldest != null) {
+                    // Size of logs on disk
+                    File dir = mContext.getDir(LOG_FOLDER, Context.MODE_PRIVATE);
+                    long totalSize = 0;
+                    File[] logFiles = dir.listFiles();
+                    for (File logFile : logFiles)
+                        totalSize += logFile.length();
 
-                // Check if size of logs on disk exceeds the limit, drop
-                // oldest messages in this case
-                if(totalSize > mMaxSizeOnDisk) {
-                    int numFiles = logFiles.length;
-                    if(numFiles <= 1)
-                        return;
+                    // Check if size of logs on disk exceeds the limit, drop
+                    // oldest messages in this case
+                    if (totalSize > mMaxSizeOnDisk) {
+                        int numFiles = logFiles.length;
+                        if (numFiles <= 1)
+                            return;
 
-                    oldest.delete();
+                        oldest.delete();
+                    }
                 }
             }
             
