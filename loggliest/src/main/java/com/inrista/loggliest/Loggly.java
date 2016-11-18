@@ -101,8 +101,14 @@ import retrofit.mime.TypedInput;
  * </pre>
  * <b>NOTE:</b> Short upload intervals will have a negative effect on the battery life. 
  *
+ * Rather than run out of memory, log messages are discarded and an optional listener called if
+ * logs are received faster than queue can be flushed to disk.
+ *
  */
 public class Loggly {
+    public interface LogglyListener {
+        void rejectedMessage(JSONObject jsonObject);
+    }
 
     private static final String LOGGLY_DEFAULT_URL = "https://logs-01.loggly.com";
     private static final String LOG_FOLDER = "logglylogs";
@@ -132,7 +138,7 @@ public class Loggly {
      
     private static IBulkLog mBulkLogService;
     private static Thread mThread = null;
-    private static LinkedBlockingQueue<JSONObject> mLogQueue = new LinkedBlockingQueue<JSONObject>();
+    private static LinkedBlockingQueue<JSONObject> mLogQueue = new LinkedBlockingQueue<JSONObject>(LOGGLY_MAX_POST_SIZE / 100);
     private static long mLastUpload = 0;
     private static long mLastLog = 0;
     private static int mLogCounter = 0;
@@ -142,6 +148,8 @@ public class Loggly {
     private static int mAppVersionCode = 0;
     private static HashMap<String, String> mStickyInfo = null;
     private static int mMaxSizeOnDisk = 0;
+
+    private static LogglyListener mListener;
     
     /**
      * Configures the {@link Loggly} instance.
@@ -158,7 +166,8 @@ public class Loggly {
         private boolean appendDefaultInfo = APPEND_DEFAULT_INFO_DEFAULT;
         private HashMap<String, String> stickyInfo = new HashMap<String, String>();
         private int maxSizeOnDisk = MAX_SIZE_ON_DISK_DEFAULT;
-        
+        private LogglyListener listener;
+
         private Builder(Context context, String token) {
             this.token = token;
             this.context = context.getApplicationContext();
@@ -257,7 +266,15 @@ public class Loggly {
             this.maxSizeOnDisk = size;
             return this;
         }
-        
+
+        /**
+         * Listener for rejected log messages if logs are received faster than queue can be flushed to disk.
+         */
+        public Builder listener(LogglyListener listener) {
+            this.listener = listener;
+            return this;
+        }
+
         /**
          * Create the {@link Loggly} instance.
          */
@@ -285,7 +302,7 @@ public class Loggly {
                     if (mInstance == null) {
                         mInstance = new Loggly(context, token, logglyTag, logglyUrl, 
                                 uploadIntervalSecs, uploadIntervalLogCount, idleSecs, 
-                                appendDefaultInfo, stickyInfo, maxSizeOnDisk);
+                                appendDefaultInfo, stickyInfo, maxSizeOnDisk, listener);
                     }
                 }
             }
@@ -314,7 +331,7 @@ public class Loggly {
     
     private Loggly(Context context, String token, String logglyTag, String logglyUrl, 
             int uploadIntervalSecs, int uploadIntervalLogCount, int idleSecs, 
-            boolean appendDefaultInfo, HashMap<String, String> stickyInfo, int maxSizeOnDisk) {
+            boolean appendDefaultInfo, HashMap<String, String> stickyInfo, int maxSizeOnDisk, LogglyListener listener) {
         
         mContext = context;
         mToken = token;
@@ -325,6 +342,7 @@ public class Loggly {
         mAppendDefaultInfo = appendDefaultInfo;
         mStickyInfo = stickyInfo;
         mMaxSizeOnDisk = maxSizeOnDisk;
+        mListener = listener;
                 
         mRecentLogFile = recentLogFile();
         mDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US);
@@ -403,7 +421,15 @@ public class Loggly {
         if(!mThread.isAlive())
             start();
         
-        mLogQueue.offer(jsonObject);
+        if (!mLogQueue.offer(jsonObject)) {
+            if (mListener != null) {
+                mListener.rejectedMessage(jsonObject);
+            }
+        }
+    }
+
+    public static boolean isAcceptingMessages() {
+        return mLogQueue.remainingCapacity() > 0;
     }
 
     private static void log(String key, Object msg, String level, long time) {
