@@ -428,8 +428,8 @@ public class Loggly {
         }
     }
 
-    public static boolean isAcceptingMessages() {
-        return mLogQueue.remainingCapacity() > 0;
+    public static int remainingMessageCapacity() {
+        return mLogQueue.remainingCapacity();
     }
 
     private static void log(String key, Object msg, String level, long time) {
