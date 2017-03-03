@@ -543,6 +543,8 @@ public class Loggly {
      * synchronization if necessary. 
      */
     public static synchronized void forceUpload() {
+        // ensure that the logging thread is running - it is responsible for posting logs
+        start();
         mContinueRunning = false;
         mThread.interrupt();
         try {
