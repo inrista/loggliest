@@ -138,6 +138,7 @@ public class Loggly {
      
     private static IBulkLog mBulkLogService;
     private static Thread mThread = null;
+    private static volatile boolean mContinueRunning;
     private static LinkedBlockingQueue<JSONObject> mLogQueue = new LinkedBlockingQueue<JSONObject>(LOGGLY_MAX_POST_SIZE / 100);
     private static long mLastUpload = 0;
     private static long mLastLog = 0;
@@ -373,47 +374,43 @@ public class Loggly {
                 mThread.setName(THREAD_NAME);
                 
                 List<JSONObject> logBatch = new ArrayList<JSONObject>();
-                while(true) {
-                    try {
-                        if (mThread.isInterrupted()) {
-                            throw new InterruptedException();
-                        }
 
+                try {
+                    while (mContinueRunning) {
                         JSONObject msg = mLogQueue.poll(10, TimeUnit.SECONDS);
-                        if(msg != null) {
+                        if (msg != null) {
                             logBatch.add(msg);
                             while ((msg = mLogQueue.poll()) != null)
                                 logBatch.add(msg);
                         }
 
                         long now = SystemClock.elapsedRealtime() / 1000;
-                        
-                        if(!logBatch.isEmpty()) {
+
+                        if (!logBatch.isEmpty()) {
                             mLastLog = now;
                             mLogCounter += logBatch.size();
                             logToFile(logBatch);
                             logBatch.clear();
                         }
-                        
-                        if((now - mLastUpload) >= mUploadIntervalSecs 
+
+                        if ((now - mLastUpload) >= mUploadIntervalSecs
                                 || mLogCounter >= mUploadIntervalLogCount) {
                             postLogs();
                         }
-                        
-                        if(((now - mLastLog) >= mIdleSecs) && mIdleSecs > 0 && mLastLog > 0) {
-                            mThread.interrupt();
+
+                        if (((now - mLastLog) >= mIdleSecs) && mIdleSecs > 0 && mLastLog > 0) {
+                            mContinueRunning = false;
                         }
-                        
-                    } catch (InterruptedException e) {
-                        mLogQueue.drainTo(logBatch);
-                        logToFile(logBatch);
-                        postLogs();
-                        return;
                     }
-                }
+                } catch (InterruptedException e) {}
+
+                mLogQueue.drainTo(logBatch);
+                logToFile(logBatch);
+                postLogs();
             }
         });
-         
+
+        mContinueRunning = true;
         mThread.start();
     }
         
@@ -546,6 +543,9 @@ public class Loggly {
      * synchronization if necessary. 
      */
     public static synchronized void forceUpload() {
+        // ensure that the logging thread is running - it is responsible for posting logs
+        start();
+        mContinueRunning = false;
         mThread.interrupt();
         try {
             mThread.join();
