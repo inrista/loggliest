@@ -18,7 +18,9 @@ android {
 }
 
 dependencies {
-    compile 'com.squareup.retrofit:retrofit:1.9.0'
+    compile 'com.squareup.retrofit2:retrofit:2.3.0'
+    // for converting responses to scalar Strings
+    compile 'com.squareup.retrofit2:converter-scalars:2.3.0'
 }
 
 apply plugin: 'maven'

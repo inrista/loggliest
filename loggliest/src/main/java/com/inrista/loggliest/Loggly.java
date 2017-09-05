@@ -43,15 +43,15 @@ import java.util.Locale;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import retrofit.RestAdapter;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
-import retrofit.http.Body;
-import retrofit.http.Headers;
-import retrofit.http.POST;
-import retrofit.http.Path;
-import retrofit.mime.TypedByteArray;
-import retrofit.mime.TypedInput;
+import okhttp3.OkHttpClient;
+import retrofit2.Call;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.scalars.ScalarsConverterFactory;
+import retrofit2.http.Body;
+import retrofit2.http.Headers;
+import retrofit2.http.POST;
+import retrofit2.http.Path;
 
 /**
  * Android Loggly client using the HTTP/S bulk api.
@@ -158,7 +158,8 @@ public class Loggly {
         private boolean appendDefaultInfo = APPEND_DEFAULT_INFO_DEFAULT;
         private HashMap<String, String> stickyInfo = new HashMap<String, String>();
         private int maxSizeOnDisk = MAX_SIZE_ON_DISK_DEFAULT;
-        
+        private OkHttpClient httpClient;
+
         private Builder(Context context, String token) {
             this.token = token;
             this.context = context.getApplicationContext();
@@ -257,6 +258,15 @@ public class Loggly {
             this.maxSizeOnDisk = size;
             return this;
         }
+
+        /**
+         * Override the default okHttp client to use for communicating with loggly
+         * @param client OkHttp client to use
+         */
+        public Builder okHttpClient(OkHttpClient client) {
+            httpClient = client;
+            return this;
+        }
         
         /**
          * Create the {@link Loggly} instance.
@@ -280,12 +290,16 @@ public class Loggly {
             if(maxSizeOnDisk < MAX_SIZE_ON_DISK_MIN)
                 maxSizeOnDisk = MAX_SIZE_ON_DISK_MIN;
 
+            if(httpClient == null) {
+                httpClient = new OkHttpClient();
+            }
+
             if (mInstance == null) {
                 synchronized (Loggly.class) {
                     if (mInstance == null) {
                         mInstance = new Loggly(context, token, logglyTag, logglyUrl, 
                                 uploadIntervalSecs, uploadIntervalLogCount, idleSecs, 
-                                appendDefaultInfo, stickyInfo, maxSizeOnDisk);
+                                appendDefaultInfo, stickyInfo, maxSizeOnDisk, httpClient);
                     }
                 }
             }
@@ -314,7 +328,8 @@ public class Loggly {
     
     private Loggly(Context context, String token, String logglyTag, String logglyUrl, 
             int uploadIntervalSecs, int uploadIntervalLogCount, int idleSecs, 
-            boolean appendDefaultInfo, HashMap<String, String> stickyInfo, int maxSizeOnDisk) {
+            boolean appendDefaultInfo, HashMap<String, String> stickyInfo, int maxSizeOnDisk,
+            OkHttpClient okHttpClient) {
         
         mContext = context;
         mToken = token;
@@ -335,11 +350,13 @@ public class Loggly {
             mAppVersionName = info.versionName;
             mAppVersionCode = info.versionCode;
         } catch (NameNotFoundException e) {}
-        
-        RestAdapter restAdapter = new RestAdapter.Builder()
-        .setEndpoint(logglyUrl)
-        .build();
-        mBulkLogService = restAdapter.create(IBulkLog.class);
+
+        Retrofit retrofit = new Retrofit.Builder()
+            .baseUrl(logglyUrl)
+            .client(okHttpClient)
+            .addConverterFactory(ScalarsConverterFactory.create())
+            .build();
+        mBulkLogService = retrofit.create(IBulkLog.class);
         
         start();
     }    
@@ -642,7 +659,7 @@ public class Loggly {
     private interface IBulkLog {
         @Headers("content-type:application/json")
         @POST("/bulk/{token}/tag/{tag}")
-        Response log(@Path("token") String token, @Path("tag") String logtag, @Body TypedInput body);
+        Call<String> log(@Path("token") String token, @Path("tag") String logtag, @Body String body);
     }
     
     private static void postLogs() {
@@ -672,21 +689,18 @@ public class Loggly {
             String json = builder.toString();
             if (json.isEmpty())
                 return;
-            
+
             try {
                 // Blocking POST
-                TypedInput body = new TypedByteArray("application/json", json.getBytes());
-                Response answer = mBulkLogService.log(mToken, mLogglyTag, body);
-
+                Response<String> answer = mBulkLogService.log(mToken, mLogglyTag, json).execute();
                 // Successful post
-                if (answer.getStatus() == 200) {
+                if (answer.code() == 200) {
                     logFile.delete();
                     mRecentLogFile = null;
                 }
-            } 
-            
-            // Post failed for some reason, keep log files and retry later
-            catch (RetrofitError error) {}
+            } catch (IOException error) {
+                // Post failed for some reason, keep log files and retry later
+            }
         }
     }
 }
