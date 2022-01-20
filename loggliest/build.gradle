@@ -22,7 +22,3 @@ dependencies {
     api 'com.squareup.retrofit:retrofit:1.9.0'
 }
 
-configurations {
-    optional
-    compile.extendsFrom optional
-}
